@@ -55,7 +55,7 @@ Module PolymorphicGenerator
 
         Dim keyArr As String = "{" & String.Join(", ", key.Select(Function(b) b.ToString())) & "}"
 
-        ' Создание и добавление исходного кода
+
 
         Dim sourceCode As String = $"
 Imports System.IO
@@ -86,7 +86,7 @@ End Function
 End Module"
         Dim results As CompilerResults = provider.CompileAssemblyFromSource(options, sourceCode)
 
-        ' Проверка ошибок компиляции и вывод их в форму
+
         If results.Errors.Count > 0 Then
             For Each errorObj As CompilerError In results.Errors
                 Console.WriteLine(errorObj.ErrorText, &H10)
