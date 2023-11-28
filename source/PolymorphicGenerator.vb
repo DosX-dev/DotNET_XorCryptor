@@ -1,4 +1,7 @@
-﻿Imports System.CodeDom.Compiler
+﻿'' Coded by DosX
+'' GitHub: https://github.com/DosX-dev
+
+Imports System.CodeDom.Compiler
 Imports System.IO
 Imports System.Reflection
 Imports System.Security.Cryptography
