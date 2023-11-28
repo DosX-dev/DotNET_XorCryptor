@@ -1,5 +1,7 @@
 # DotNET XorCryptor
 
+### [You can also pay attention to an older project - NET-MalwareCryptor](https://github.com/DosX-dev/NET-MalwareCryptor)
+
 This is a .NET executable packer with payload encryption. Use for educational purposes only.
 
 Using example:
