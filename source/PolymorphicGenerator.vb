@@ -5,6 +5,7 @@ Imports System.CodeDom.Compiler
 Imports System.IO
 Imports System.Reflection
 Imports System.Security.Cryptography
+Imports System.Text
 
 Module PolymorphicGenerator
     Dim rnd As New Random()
@@ -15,8 +16,8 @@ Module PolymorphicGenerator
             End
         End If
 
-        Dim FileName_ToPack = IO.Path.GetFileName(Command())
-        Dim FileName_NoExt = IO.Path.GetFileNameWithoutExtension(FileName_ToPack)
+        Dim FileName_ToPack = IO.Path.GetFileName(Command()),
+            FileName_NoExt = IO.Path.GetFileNameWithoutExtension(FileName_ToPack)
 
         Directory.SetCurrentDirectory(IO.Path.GetDirectoryName(Path.GetFullPath(FileName_ToPack)))
 
@@ -45,8 +46,8 @@ Module PolymorphicGenerator
 
         File.Copy(FileName_ToPack, payloadName)
 
-        Dim length As Integer = rnd.Next(10, 21),
-            key(length - 1) As Byte
+        Dim keyLength As Integer = rnd.Next(10, 21),
+            key(keyLength - 1) As Byte
         rnd.NextBytes(key)
 
         File.WriteAllBytes(payloadName, XorEnc(File.ReadAllBytes(FileName_ToPack), key))
@@ -55,6 +56,10 @@ Module PolymorphicGenerator
 
         Dim keyArr As String = "{" & String.Join(", ", key.Select(Function(b) b.ToString())) & "}"
 
+
+        Console.WriteLine("Generated key:" & vbLf & " | BYTES: " & keyArr.Replace(" ", String.Empty) & vbLf & " | BASE64: " & Convert.ToBase64String(key) & vbLf &
+                          "Payload size: " & New FileInfo(payloadName).Length & " bytes" & vbLf &
+                          "Key size: " & keyLength & " bytes")
 
 
         Dim sourceCode As String = $"
@@ -98,7 +103,7 @@ End Module"
             End If
             File.Delete(payloadName)
             File.Move(buildOutName, FileCreated)
-            Console.WriteLine("File created successfully: " & FileCreated)
+            Console.WriteLine(vbLf & "* Stub with encrypted payload compiled successfully! Output: " & FileCreated)
         End If
     End Sub
 
