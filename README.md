@@ -6,7 +6,7 @@ This is a .NET executable packer with payload encryption. Use for educational pu
 ## How to use?
  * `--file {path}` - specify file name
  * `--flood` - add junk classes to file
- * `--proxy` - move original entry point to from Main()
+ * `--proxy` - move original entry point from Main()
 
 For example:
 ```
