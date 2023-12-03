@@ -12,8 +12,10 @@ For example:
 ```
 xor-pack.exe --file "stub.exe" --proxy --flood
 ```
+This packer is suitable for all applications written in: VB NET, C#, C++/CLR, JScript .NET, MSIL, etc. (on the .NET Framework)
 
-For enhanced effectiveness, it is strongly recommended to heavily obfuscate the assembly before applying the encryption process.
+For enhanced effectiveness, it is strongly recommended to heavily obfuscate the assembly before and after applying the encryption process.
+
 ## [DOWNLOAD COMPILED](https://github.com/DosX-dev/DotNET_XorCryptor/releases/tag/Builds)
 
 
