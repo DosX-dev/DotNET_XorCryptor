@@ -1,0 +1,11 @@
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\bin\Release\xor-pack.exe.config
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\bin\Release\xor-pack.exe
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\bin\Release\xor-pack.pdb
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\bin\Release\xor-pack.xml
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xorPack.vbproj.AssemblyReference.cache
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xorPack.Resources.resources
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xorPack.vbproj.GenerateResource.cache
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xorPack.vbproj.CoreCompileInputs.cache
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xor-pack.exe
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xor-pack.xml
+C:\Users\kayko\OneDrive\Документы\GitHub\DotNET_XorCryptor\source\obj\Release\xor-pack.pdb
